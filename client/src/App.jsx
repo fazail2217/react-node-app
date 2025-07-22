@@ -7,7 +7,6 @@ function App() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
-  // Fetch items from the backend on component mount
   useEffect(() => {
     setIsLoading(true);
     fetch('/api/items')
@@ -25,7 +24,6 @@ function App() {
       });
   }, []);
 
-  // Handle form submission to add a new item
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!newItemName.trim()) {
@@ -38,7 +36,10 @@ function App() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: newItemName }),
       });
-      if (!response.ok) throw new Error('Failed to add item');
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to add item');
+      }
       const newItem = await response.json();
       setItems([...items, newItem]);
       setNewItemName('');
@@ -48,13 +49,15 @@ function App() {
     }
   };
 
-  // Handle deleting an item
   const handleDelete = async (id) => {
     try {
       const response = await fetch(`/api/items/${id}`, {
         method: 'DELETE',
       });
-      if (!response.ok) throw new Error('Failed to delete item');
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to delete item');
+      }
       setItems(items.filter(item => item.id !== id));
       setError('');
     } catch (err) {
@@ -64,15 +67,9 @@ function App() {
 
   return (
     <div className="min-h-screen bg-gray-100 flex flex-col items-center py-8">
-      <h1 className="text-4xl font-bold text-blue-600 mb-6">
-        Node.js + React Practice App
-      </h1>
-
-      {/* Error message */}
+      <h1 className="text-4xl font-bold text-blue-600 mb-6">Node.js + React Practice App</h1>
       {error && <p className="text-red-500 mb-4">{error}</p>}
-
-      {/* Form to add new item */}
-      <form onSubmit={handleSubmit} className="mb-8 w-full max-w-md bg-white p-6 rounded-lg shadow-md">
+      <form onSubmit={handleSubmit} className="mb-8 w-full max-w-md bg-white rounded-lg shadow-md p-6">
         <div className="flex gap-2">
           <input
             type="text"
@@ -89,31 +86,29 @@ function App() {
           </button>
         </div>
       </form>
-
-      {/* List of items */}
       {isLoading ? (
         <p className="text-gray-500">Loading items...</p>
       ) : (
-        <ul className="w-full max-w-md">
+        <div className="w-full max-w-md grid grid-cols-1 gap-4">
           {items.length === 0 ? (
             <p className="text-gray-500">No items yet. Add some!</p>
           ) : (
             items.map(item => (
-              <li
+              <div
                 key={item.id}
-                className="p-4 bg-white border rounded-lg mb-2 shadow-sm flex justify-between items-center"
+                className="bg-white rounded-lg shadow-md p-4 flex justify-between items-center hover:bg-gray-50"
               >
-                <span>{item.name}</span>
+                <span className="font-medium">{item.name}</span>
                 <button
                   onClick={() => handleDelete(item.id)}
-                  className="px-2 py-1 bg-red-500 text-white rounded hover:bg-red-600"
+                  className="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600"
                 >
                   Delete
                 </button>
-              </li>
+              </div>
             ))
           )}
-        </ul>
+        </div>
       )}
     </div>
   );
