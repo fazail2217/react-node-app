@@ -1,5 +1,9 @@
 import { useState, useEffect } from 'react';
 import './index.css';
+import Notification from './Notification';
+import ItemForm from './ItemForm';
+import ItemList from './ItemList';
+import EditItem from './EditItem';
 
 function App() {
   const [items, setItems] = useState([]);
@@ -7,7 +11,8 @@ function App() {
   const [editingId, setEditingId] = useState(null);
   const [editName, setEditName] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [actionLoading, setActionLoading] = useState(false);
+  const [notification, setNotification] = useState({ message: '', type: '' });
 
   useEffect(() => {
     setIsLoading(true);
@@ -21,17 +26,18 @@ function App() {
         setIsLoading(false);
       })
       .catch(err => {
-        setError(err.message);
+        setNotification({ message: err.message, type: 'error' });
         setIsLoading(false);
       });
   }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!newItemName.trim()) {
-      setError('Item name cannot be empty');
+    if (!newItemName.trim() || newItemName.length < 2 || newItemName.length > 50) {
+      setNotification({ message: 'Item name must be 2-50 characters.', type: 'error' });
       return;
     }
+    setActionLoading(true);
     try {
       const response = await fetch('/api/items', {
         method: 'POST',
@@ -45,13 +51,15 @@ function App() {
       const newItem = await response.json();
       setItems([...items, newItem]);
       setNewItemName('');
-      setError('');
+      setNotification({ message: 'Item added successfully!', type: 'success' });
     } catch (err) {
-      setError(err.message);
+      setNotification({ message: err.message, type: 'error' });
     }
+    setActionLoading(false);
   };
 
   const handleDelete = async (id) => {
+    setActionLoading(true);
     try {
       const response = await fetch(`/api/items/${id}`, {
         method: 'DELETE',
@@ -61,10 +69,11 @@ function App() {
         throw new Error(errorData.error || 'Failed to delete item');
       }
       setItems(items.filter(item => item.id !== id));
-      setError('');
+      setNotification({ message: 'Item deleted successfully!', type: 'success' });
     } catch (err) {
-      setError(err.message);
+      setNotification({ message: err.message, type: 'error' });
     }
+    setActionLoading(false);
   };
 
   const handleEdit = (item) => {
@@ -73,10 +82,11 @@ function App() {
   };
 
   const handleUpdate = async (id) => {
-    if (!editName.trim()) {
-      setError('Item name cannot be empty');
+    if (!editName.trim() || editName.length < 2 || editName.length > 50) {
+      setNotification({ message: 'Item name must be 2-50 characters.', type: 'error' });
       return;
     }
+    setActionLoading(true);
     try {
       const response = await fetch(`/api/items/${id}`, {
         method: 'PUT',
@@ -91,89 +101,51 @@ function App() {
       setItems(items.map(item => (item.id === id ? updatedItem : item)));
       setEditingId(null);
       setEditName('');
-      setError('');
+      setNotification({ message: 'Item updated successfully!', type: 'success' });
     } catch (err) {
-      setError(err.message);
+      setNotification({ message: err.message, type: 'error' });
     }
+    setActionLoading(false);
   };
 
   return (
     <div className="min-h-screen bg-gray-100 flex flex-col items-center py-8">
       <h1 className="text-4xl font-bold text-blue-600 mb-6">WORK LIST APP</h1>
-      {error && <p className="text-red-500 mb-4">{error}</p>}
-      <form onSubmit={handleSubmit} className="mb-8 w-full max-w-md bg-white rounded-lg shadow-md p-6">
-        <div className="flex gap-2">
-          <input
-            type="text"
-            value={newItemName}
-            onChange={(e) => setNewItemName(e.target.value)}
-            placeholder="Enter item name"
-            className="flex-1 p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-          <button
-            type="submit"
-            className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600"
-          >
-            Add Item
-          </button>
-        </div>
-      </form>
+      <Notification
+        message={notification.message}
+        type={notification.type}
+        onClose={() => setNotification({ message: '', type: '' })}
+      />
+      <ItemForm
+        value={newItemName}
+        onChange={e => setNewItemName(e.target.value)}
+        onSubmit={handleSubmit}
+        loading={actionLoading}
+      />
       {isLoading ? (
-        <p className="text-gray-500">Loading items...</p>
-      ) : (
-        <div className="w-full max-w-md grid grid-cols-1 gap-4">
-          {items.length === 0 ? (
-            <p className="text-gray-500">No items yet. Add some!</p>
-          ) : (
-            items.map(item => (
-              <div
-                key={item.id}
-                className="bg-white rounded-lg shadow-md p-4 flex justify-between items-center hover:bg-gray-50"
-              >
-                {editingId === item.id ? (
-                  <div className="flex gap-2 w-full">
-                    <input
-                      type="text"
-                      value={editName}
-                      onChange={(e) => setEditName(e.target.value)}
-                      className="flex-1 p-2 border rounded-lg"
-                    />
-                    <button
-                      onClick={() => handleUpdate(item.id)}
-                      className="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600"
-                    >
-                      Save
-                    </button>
-                    <button
-                      onClick={() => setEditingId(null)}
-                      className="px-3 py-1 bg-gray-500 text-white rounded hover:bg-gray-600"
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                ) : (
-                  <>
-                    <span className="font-medium">{item.name}</span>
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => handleEdit(item)}
-                        className="px-3 py-1 bg-yellow-500 text-white rounded hover:bg-yellow-600"
-                      >
-                        Edit
-                      </button>
-                      <button
-                        onClick={() => handleDelete(item.id)}
-                        className="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600"
-                      >
-                        Delete
-                      </button>
-                    </div>
-                  </>
-                )}
-              </div>
-            ))
-          )}
+        <div className="flex items-center justify-center h-32">
+          <svg className="animate-spin h-8 w-8 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
+          </svg>
+          <span className="ml-2 text-gray-500">Loading items...</span>
         </div>
+      ) : (
+        <ItemList
+          items={items}
+          editingId={editingId}
+          onEdit={handleEdit}
+          onDelete={handleDelete}
+          renderEdit={item => (
+            <EditItem
+              value={editName}
+              onChange={e => setEditName(e.target.value)}
+              onSave={() => handleUpdate(item.id)}
+              onCancel={() => setEditingId(null)}
+              loading={actionLoading}
+            />
+          )}
+        />
       )}
     </div>
   );
