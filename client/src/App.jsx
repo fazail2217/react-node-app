@@ -4,6 +4,8 @@ import './index.css';
 function App() {
   const [items, setItems] = useState([]);
   const [newItemName, setNewItemName] = useState('');
+  const [editingId, setEditingId] = useState(null);
+  const [editName, setEditName] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -65,6 +67,36 @@ function App() {
     }
   };
 
+  const handleEdit = (item) => {
+    setEditingId(item.id);
+    setEditName(item.name);
+  };
+
+  const handleUpdate = async (id) => {
+    if (!editName.trim()) {
+      setError('Item name cannot be empty');
+      return;
+    }
+    try {
+      const response = await fetch(`/api/items/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: editName }),
+      });
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to update item');
+      }
+      const updatedItem = await response.json();
+      setItems(items.map(item => (item.id === id ? updatedItem : item)));
+      setEditingId(null);
+      setEditName('');
+      setError('');
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-100 flex flex-col items-center py-8">
       <h1 className="text-4xl font-bold text-blue-600 mb-6">Node.js + React Practice App</h1>
@@ -98,13 +130,46 @@ function App() {
                 key={item.id}
                 className="bg-white rounded-lg shadow-md p-4 flex justify-between items-center hover:bg-gray-50"
               >
-                <span className="font-medium">{item.name}</span>
-                <button
-                  onClick={() => handleDelete(item.id)}
-                  className="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600"
-                >
-                  Delete
-                </button>
+                {editingId === item.id ? (
+                  <div className="flex gap-2 w-full">
+                    <input
+                      type="text"
+                      value={editName}
+                      onChange={(e) => setEditName(e.target.value)}
+                      className="flex-1 p-2 border rounded-lg"
+                    />
+                    <button
+                      onClick={() => handleUpdate(item.id)}
+                      className="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600"
+                    >
+                      Save
+                    </button>
+                    <button
+                      onClick={() => setEditingId(null)}
+                      className="px-3 py-1 bg-gray-500 text-white rounded hover:bg-gray-600"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    <span className="font-medium">{item.name}</span>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => handleEdit(item)}
+                        className="px-3 py-1 bg-yellow-500 text-white rounded hover:bg-yellow-600"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        onClick={() => handleDelete(item.id)}
+                        className="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </>
+                )}
               </div>
             ))
           )}

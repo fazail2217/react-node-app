@@ -5,9 +5,7 @@ const app = express();
 const port = 3000;
 
 app.use(express.json());
-app.use(cors({
-  origin: 'http://localhost:5173'
-}));
+app.use(cors({ origin: 'http://localhost:5173' }));
 
 let items = [
   { id: 1, name: 'Item 1' },
@@ -42,6 +40,19 @@ app.delete('/api/items/:id', (req, res) => {
   }
   items = items.filter(item => item.id !== id);
   res.json({ message: `Item ${id} deleted` });
+});
+
+app.put('/api/items/:id', (req, res) => {
+  const id = parseInt(req.params.id);
+  const itemIndex = items.findIndex(item => item.id === id);
+  if (itemIndex === -1) {
+    return res.status(404).json({ error: 'Item not found' });
+  }
+  if (!req.body.name) {
+    return res.status(400).json({ error: 'Name is required' });
+  }
+  items[itemIndex].name = req.body.name;
+  res.json(items[itemIndex]);
 });
 
 app.listen(port, () => {
