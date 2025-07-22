@@ -99,7 +99,7 @@ function App() {
 
   return (
     <div className="min-h-screen bg-gray-100 flex flex-col items-center py-8">
-      <h1 className="text-4xl font-bold text-blue-600 mb-6">Node.js + React Practice App</h1>
+      <h1 className="text-4xl font-bold text-blue-600 mb-6">WORK LIST APP</h1>
       {error && <p className="text-red-500 mb-4">{error}</p>}
       <form onSubmit={handleSubmit} className="mb-8 w-full max-w-md bg-white rounded-lg shadow-md p-6">
         <div className="flex gap-2">
